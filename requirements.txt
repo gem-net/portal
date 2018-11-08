@@ -1,0 +1,17 @@
+Flask
+Flask-Login
+Flask-SQLAlchemy
+Flask-WTF
+MarkupSafe
+SQLAlchemy
+argparse
+itsdangerous
+rauth
+requests
+python-dotenv
+google-api-python-client
+Flask-Bootstrap
+Flask-Mail
+pymysql
+pandas
+oauth2client

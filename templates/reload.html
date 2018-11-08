@@ -1,0 +1,11 @@
+<html>
+    <head>
+        <title>C-GEM members reloaded.</title>
+    </head>
+    <body>
+        <h1>C-GEM members reloaded.</h1>
+        {% for message in get_flashed_messages() %}
+            <p>{{ message }}</p>
+        {% endfor %}
+    </body>
+</html>
