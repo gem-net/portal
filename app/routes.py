@@ -1,11 +1,11 @@
 from collections import OrderedDict
 
 from flask import redirect, url_for, render_template, flash, abort, \
-    current_app, request, session
+    current_app, request, session, g
 from flask_login import login_user, logout_user,\
     current_user, login_required
 
-from app import app, db, OAuthSignIn, update_members_and_emails, MEMBERS_DICT
+from app import app, db, OAuthSignIn, update_members_and_tables
 from .models import User
 
 
@@ -13,7 +13,7 @@ from .models import User
 def load_members_list():
     if current_user.is_authenticated and current_user.in_cgem:
         update_members_and_emails()
-        n_members = len(MEMBERS_DICT)
+        n_members = len(g.members_dict)
         msg = 'Emails and members list updated ({} members).'.format(n_members)
         flash(msg, 'message')
         return render_template('reload.html')
@@ -23,8 +23,9 @@ def load_members_list():
 
 @app.route('/',  methods=['POST', 'GET'])
 def index():
-    # if not (current_user.is_authenticated and current_user.in_cgem):
-    return render_template("index.html")
+    if not (current_user.is_authenticated and current_user.in_cgem):
+        return render_template("index.html")
+    return render_template("index.html", cal=g.cal, docs=g.recent_docs, statuses=g.statuses)
 
 
 @app.route('/logout')
@@ -43,7 +44,6 @@ def oauth_authorize(provider):
 
 @app.route('/callback/<provider>')
 def oauth_callback(provider):
-    global MEMBERS_DICT
     if not current_user.is_anonymous:
         return redirect(url_for('index'))
     oauth_obj = OAuthSignIn.get_provider(provider)
@@ -53,8 +53,8 @@ def oauth_callback(provider):
         return redirect(url_for('index'))
     user = User.query.filter_by(social_id=social_id).first()
     if not user:
-        if social_id in MEMBERS_DICT:
-            email = MEMBERS_DICT[social_id]
+        if social_id in g.members_dict:
+            email = g.members_dict[social_id]
         user = User(social_id=social_id, display_name=username, email=email)
         db.session.add(user)
         db.session.commit()

@@ -4,17 +4,7 @@
 {% import "bootstrap/wtf.html" as wtf %}
 {% block app_content %}
     {% if current_user.is_authenticated %}
-        {% if current_user.in_cgem %}
-            <div class="panel panel-primary">
-                <div class="panel-heading">
-                    Welcome, {{ current_user.display_name }}. Such wonders await.</div>
-                <div class="panel-body">
-                <ul>
-                    <li>Wonders under construction.</li>
-                </ul>
-                </div>
-            </div>
-        {% else %}
+        {% if not current_user.in_cgem %}
             <p>Unfortunately your ID hasn't been recognized. Maybe you
                 have a different account associated with C-GEM?
                 Try logging out and back in again.</p>
@@ -30,8 +20,129 @@
     {% endif %}
 
     {% if current_user.is_authenticated and current_user.in_cgem %}
+    
+    <div class="alert alert-info" role="alert">
+        <strong>Welcome, {{ current_user.display_name }}!</strong>
+    </div>
+
+
+
         
-    {% endif %}
+    </div>
+</div>
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
+    <h1><i class="far fa-calendar-alt"></i>Upcoming events</h1>
+    <p>Browse and create new events at <a href="https://calendar.google.com/calendar/r">Google Calendar</a>. Click a <i class="far fa-question-circle"></i> icon to view the event description.</p>
+    <div class="table-responsive">
+        <table class="table table-condensed table-striped table-hover">
+            <thead><tr>
+            {% set df, cols_show = cal.df, cal.cols_show %}
+            {% for col_val, col_name in cols_show.items() %}
+                <th>{{ col_name }}</th>
+            {% endfor %}
+            <th></th>
+            </tr></thead>
+            <tbody>
+            {% for ind, row in df.iterrows() %}
+                <tr>
+                {% for col_name, val in row.items() %}
+                    {% if col_name == 'title' %}
+                        <td>
+                            <a href="{{ row.loc['url'] }}" target="_blank">{{ val }}</a>
+                            <span type="button" class="btn btn-xs btn-info" data-toggle="popover" title="Description" data-content="{{ row.description }}"><i class="far fa-question-circle"></i></span>
+                            
+                        </td>
+                    {% elif col_name == "start" %}
+                        <td>{{ moment(val).calendar() }}</td>
+                    {% elif col_name in cols_show %}
+                        <td>{{ val }}</td>
+                    {% endif %}
+                {% endfor %}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    </div>
+
+    <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
+    <h1><i class="fas fa-tasks"></i>Strain requests</h1>
+    <div class="table-responsive">
+        <p>View, request and respond using the <a href="http://strains.gem-net.net" target="_blank">Strains app.</a></p>
+        <table class="table table-condensed table-striped table-hover">
+            <thead><tr>
+            {% set df, cols_show = statuses.df, statuses.cols_show %}
+            {% for col_val, col_name in cols_show.items() %}
+                <th>{{ col_name }}</th>
+            {% endfor %}
+            <th></th>
+            </tr></thead>
+            <tbody>
+            {% for ind, row in df.iterrows() %}
+                <tr>
+                {% for col_name, val in row.items() %}
+                    {% if col_name in cols_show %}
+                        <td>{{ val }}</td>
+                    {% endif %}
+                {% endfor %}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    </div>
+
+    <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
+    <h1><i class="far fa-file-alt"></i>Recent docs</h1>
+    <p>The most recent 20 documents in <a href="https://drive.google.com/drive/folders/0AAiqq6S0lKYWUk9PVA">Team Drive</a> are shown below.</p>
+    <div class="table-responsive">
+    <table class="table table-condensed table-striped table-hover">
+        <thead><tr>
+        {% set df, cols_show = docs.df, docs.cols_show %}
+        {% for col_val, col_name in cols_show.items() %}
+            <th>{{ col_name }}</th>
+        {% endfor %}
+        <th></th>
+        </tr></thead>
+        <tbody>
+        {% for ind, row in df.iterrows() %}
+            <tr>
+            {% for col_name, val in row.items() %}
+                {% if col_name == 'title' %}
+                    <td><a href="{{ row.loc['url'] }}" target="_blank">
+                        <span class="mr-1"><img class="mt-1" src="{{ row.loc['icon'] }}" alt="icon"></img></span>
+                        {{ val }}
+                        </a></td>
+                {% elif col_name == "date_modified" %}
+                        <td>{{ moment(val).calendar() }}</td>
+                {% elif col_name == 'last_user' and val == current_user.display_name %}
+                    <td><strong>You!</strong></td>
+                {% elif col_name in cols_show %}
+                    <td>{{ val }}</td>
+                {% endif %}
+            {% endfor %}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    </div>
+  </div>
+</div>
 
 
+    {% endif %} 
+
+
+{% endblock %}
+
+{% block scripts_inner %}
+<script>
+$(function () {
+  $('[data-toggle="popover"]').popover()
+})
+</script>
 {% endblock %}

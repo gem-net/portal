@@ -1,5 +1,12 @@
 {% extends 'bootstrap/base.html' %}
 
+{% block styles %}
+{{super()}}
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='portal.css') }}">
+{% endblock %}
+
+
 {% block title %}
     {% if title %}{{ title }}{% else %}C-GEM Members Portal{% endif %}
 {% endblock %}
@@ -52,5 +59,6 @@
 
 {% block scripts %}
     {{ super() }}
-    {% block scipts_inner %} {% endblock %}
+    {{ moment.include_moment() }}
+    {% block scripts_inner %} {% endblock %}
 {% endblock %}

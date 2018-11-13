@@ -27,7 +27,14 @@ class Config(object):
     SERVICE_ACCOUNT_FILE = os.environ.get('SERVICE_ACCOUNT_FILE')
     CREDS_JSON = os.environ.get('CREDS_JSON')
     GROUP_KEY = os.environ.get('GROUP_KEY')
-    SCOPES = ['https://www.googleapis.com/auth/admin.directory.group.member.readonly']
+    SCOPES = [
+        'https://www.googleapis.com/auth/admin.directory.group.member.readonly',
+        'https://www.googleapis.com/auth/drive.readonly',
+        'https://www.googleapis.com/auth/drive.metadata.readonly',
+        'https://www.googleapis.com/auth/calendar.readonly',
+        'https://www.googleapis.com/auth/calendar.events.readonly']
+
+    TEAM_DRIVE_ID = os.environ.get('TEAM_DRIVE_ID')
 
     MAIL_SERVER = os.environ.get('MAIL_SERVER')
     MAIL_PORT = int(os.environ.get('MAIL_PORT') or 25)
