@@ -11,7 +11,6 @@ from flask_moment import Moment
 from .oauth import OAuthSignIn
 from .config import config
 
-
 app = Flask(__name__)
 app.config.from_object(config[os.getenv('FLASK_ENV') or 'default'])
 
@@ -28,13 +27,16 @@ mail.init_app(app)
 
 moment = Moment(app)
 
+MEMBERS_DICT = {}
+TABLE_DICT = {}
+
+
 @app.before_request
 def before_request():
+    update_g()
     if current_user.is_authenticated:
         current_user.last_seen = datetime.utcnow()
         # first-request data reload might be necessary for auto-restart development
-        if not hasattr(g, 'members_dict'):
-            update_members_and_tables()
         current_user.in_cgem = current_user.social_id in g.members_dict
         # ADJUST EMAIL IF NECESSARY
         if current_user.in_cgem:
@@ -46,13 +48,27 @@ def before_request():
     # g.locale = str(get_locale())
 
 
+def update_g():
+    g.members_dict = MEMBERS_DICT
+    g.cal = TABLE_DICT['cal']
+    g.recent_docs = TABLE_DICT['recent_docs']
+    g.statuses = TABLE_DICT['statuses']
+
+
 @app.before_first_request
 def update_members_and_tables():
     from .admin import get_members_dict, Calendar, RecentDocs, StatusTable
-    g.members_dict = get_members_dict()
-    g.cal = Calendar()
-    g.recent_docs = RecentDocs()
-    g.statuses = StatusTable(db.engine)
+    MEMBERS_DICT.clear()
+    new_dict = get_members_dict()
+    MEMBERS_DICT.update(new_dict)
+
+    TABLE_DICT.clear()
+    TABLE_DICT.update({
+        'cal': Calendar(),
+        'recent_docs': RecentDocs(),
+        'statuses': StatusTable(db.engine),
+    })
+
 
 
 from app import models
