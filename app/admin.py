@@ -58,6 +58,11 @@ class ApiTable():
             self.last_refresh = datetime.utcnow()
         return self._df
 
+    @staticmethod
+    def _get_utc_naive(dt):
+        """Convert timezone aware timestamp to UTC naive timestamp."""
+        return dt.astimezone(timezone.utc).replace(tzinfo=None)
+
 
 class StatusTable(ApiTable):
     
@@ -125,6 +130,7 @@ class Calendar(ApiTable):
 
     @staticmethod
     def parse_datetime(start_dict):
+        """Get naive datetime in UTC or date for dates."""
         if 'dateTime' in start_dict:
             return Calendar.parse_time(start_dict['dateTime'])
         if 'date' in start_dict:
@@ -132,15 +138,23 @@ class Calendar(ApiTable):
 
     @staticmethod
     def parse_time(time):
+        """Return naive datetime in UTC."""
         if pd.isnull(time):
             return pd.np.nan
         stripped = time[:-3] + time[-2:]  # remove colon in UTC offset
-        return datetime.strptime(stripped, '%Y-%m-%dT%H:%M:%S%z')
+        dt = datetime.strptime(stripped, '%Y-%m-%dT%H:%M:%S%z')
+        return ApiTable._get_utc_naive(dt)
      
     @staticmethod
     def in_past(t):
-        now = datetime.now(timezone.utc)
-        if type(t) == datetime:
+        """Get 'in past' status (True or False) for date or time.
+
+        Args:
+            t: timezone aware or naive timestamps, or date
+        """
+        now_naive = datetime.now()
+        now = now_naive if t.tzinfo is None else now_naive.replace(tzinfo=timezone.utc)
+        if isinstance(t, datetime):
             return t < now
         if type(t) == date:
             end_time = datetime.combine(t, datetime.min.time()) + timedelta(days=1)
@@ -189,8 +203,9 @@ class RecentDocs(ApiTable):
 
     @staticmethod
     def parse_timestamp_str(time):
+        """Get naive datetime in UTC."""
         # manual version
         # datetime.strptime(time, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=timezone.utc)
         timestamp = pd.to_datetime(time).replace(tzinfo=timezone.utc)
         # dt = timestamp.to_pydatetime().replace(tzinfo=timezone.utc)
-        return timestamp
+        return ApiTable._get_utc_naive(timestamp)

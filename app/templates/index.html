@@ -23,19 +23,16 @@
     
     <div class="alert alert-info" role="alert">
         <strong>Welcome, {{ current_user.display_name }}!</strong>
+        All times are shown in your browser's local timezone ({{ moment().format('LT') }}).
     </div>
 
-
-
-        
-    </div>
-</div>
 
 <div class="container-fluid">
   <div class="row">
     <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
     <h1><i class="far fa-calendar-alt"></i>Upcoming events</h1>
     <p>Browse and create new events at <a href="https://calendar.google.com/calendar/r">Google Calendar</a>. Click a <i class="far fa-question-circle"></i> icon to view the event description.</p>
+    <p><strong>Next event {{ moment(cal.df.start.iloc[0]).fromNow() }}.</strong></p>
     <div class="table-responsive">
         <table class="table table-condensed table-striped table-hover">
             <thead><tr>
@@ -56,7 +53,7 @@
                             
                         </td>
                     {% elif col_name == "start" %}
-                        <td>{{ moment(val).calendar() }}</td>
+                        <td>{{ moment(val).calendar() }}{# COMMENT ({{ moment(val).fromNow() }}) #}</td>
                     {% elif col_name in cols_show %}
                         <td>{{ val }}</td>
                     {% endif %}
