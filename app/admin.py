@@ -8,20 +8,23 @@ from googleapiclient.discovery import build
 # from httplib2 import Http
 # from oauth2client import file, client, tools
 
+from .helpers import parse_timestamp_str
+from .review import file_tree_to_df
+
 
 def get_service_handles():
     """Get dictionary of {service_name: service_handle}."""
     SERVICE_ACCOUNT_FILE = current_app.config['SERVICE_ACCOUNT_FILE']
-    GROUP_KEY = current_app.config['GROUP_KEY']
+    # GROUP_KEY = current_app.config['GROUP_KEY']
     SCOPES = current_app.config['SCOPES'] 
 
     credentials = service_account.Credentials.from_service_account_file(
         SERVICE_ACCOUNT_FILE, scopes=SCOPES)
     delegated_credentials = credentials.with_subject('stephen@gem-net.net')
 
-    dir_service = build('admin', 'directory_v1', credentials=delegated_credentials)
-    files_service = build('drive', 'v3', credentials=delegated_credentials)
-    cal_service = build('calendar', 'v3', credentials=delegated_credentials)
+    dir_service = build('admin', 'directory_v1', credentials=delegated_credentials, cache_discovery=False)
+    files_service = build('drive', 'v3', credentials=delegated_credentials, cache_discovery=False)
+    cal_service = build('calendar', 'v3', credentials=delegated_credentials, cache_discovery=False)
     return {
         'dir': dir_service,
         'files': files_service,
@@ -41,11 +44,19 @@ def get_members_dict():
     return members_dict
 
 
-class ApiTable():
-    
+class ApiTable:
+    cols_show = None  # subclasses will override
+    cols_other = None
+
     def __init__(self):
+        self._df = None  # subclasses will override
         self.last_refresh = datetime.utcnow()
+        self.refresh_minutes = 1
         self.refresh_df()
+
+    def refresh_df(self):
+        """Subclasses will override this method."""
+        pass
 
     @property
     def cols(self):
@@ -53,7 +64,7 @@ class ApiTable():
 
     @property
     def df(self):
-        if datetime.utcnow() > (self.last_refresh + timedelta(minutes=1)):
+        if datetime.utcnow() > (self.last_refresh + timedelta(minutes=self.refresh_minutes)):
             self.refresh_df()
             self.last_refresh = datetime.utcnow()
         return self._df
@@ -88,14 +99,15 @@ class StatusTable(ApiTable):
         """
 
         status_dict = OrderedDict([
-        ('unassigned', 'Unassigned'),
-        ('processing', 'Processing'),
-        ('shipped', 'Shipped'),
-        ('received', 'Received'),
-        ('problem', 'Problem'),
-        ('cancelled', 'Cancelled')])
+            ('unassigned', 'Unassigned'),
+            ('processing', 'Processing'),
+            ('shipped', 'Shipped'),
+            ('received', 'Received'),
+            ('problem', 'Problem'),
+            ('cancelled', 'Cancelled')])
 
-        statuses = pd.read_sql("select status, count(*) as n_requests from strains.requests group by status;", self.engine)
+        statuses = pd.read_sql("select status, count(*) as n_requests from strains.requests group by status;",
+                               self.engine)
         statuses.status = statuses.status.apply(lambda v: status_dict[v])
         statuses = statuses.set_index('status').reindex(status_dict.values())
         statuses = statuses['n_requests'].apply(lambda v: 0 if pd.np.isnan(v) else int(v)).reset_index()
@@ -114,13 +126,14 @@ class Calendar(ApiTable):
         service = SERVICE_HANDLES['cal']
         collection = service.events()
         cmd = collection.list(calendarId='gem-net.net_93bpcnm07c6l0d56eqgssq3eik@group.calendar.google.com',
-                      orderBy='startTime',
-                      singleEvents=True)
+                              orderBy='startTime',
+                              singleEvents=True)
         res = cmd.execute()
         
         cal = pd.DataFrame.from_records(res['items'])
         cal.rename(columns={'htmlLink': 'url', 'summary': 'title'}, inplace=True)
         cal = cal[self.cols].copy()
+        cal['location'] = cal['location'].apply(lambda v: '' if type(v) != str else v)
         cal['start'] = cal['start'].apply(Calendar.parse_datetime)
         cal['end'] = cal['end'].apply(Calendar.parse_datetime)
         cal['in_past'] = cal['end'].apply(Calendar.in_past)
@@ -132,7 +145,7 @@ class Calendar(ApiTable):
     def parse_datetime(start_dict):
         """Get naive datetime in UTC or date for dates."""
         if 'dateTime' in start_dict:
-            return Calendar.parse_time(start_dict['dateTime'])
+            return parse_timestamp_str(start_dict['dateTime'])
         if 'date' in start_dict:
             return datetime.strptime(start_dict['date'], '%Y-%m-%d').date()
 
@@ -168,13 +181,13 @@ class RecentDocs(ApiTable):
         ('date_modified', 'Modified'),
         ('last_user', 'Modified by')])
 
-    cols_other = ['date_created', 'url', 'icon' , 'kind', 'thumb']
+    cols_other = ['date_created', 'url', 'icon', 'kind', 'thumb']
     show_n = 20
 
     def refresh_df(self):
         service = SERVICE_HANDLES['files']
         file_fields = ("files(kind,id,name,webViewLink,iconLink,thumbnailLink,createdTime,"
-             "modifiedTime,lastModifyingUser/displayName)")
+                       "modifiedTime,lastModifyingUser/displayName)")
         collection = service.files()
         cmd = collection.list(corpora='teamDrive',
                               includeTeamDriveItems=True,
@@ -186,8 +199,8 @@ class RecentDocs(ApiTable):
         res = cmd.execute()
         files = pd.DataFrame.from_records(res['files'])
         files.lastModifyingUser = files.lastModifyingUser.apply(lambda v: v['displayName'])
-        files.createdTime = files.createdTime.apply(RecentDocs.parse_timestamp_str)
-        files.modifiedTime = files.modifiedTime.apply(RecentDocs.parse_timestamp_str)
+        files.createdTime = files.createdTime.apply(parse_timestamp_str)
+        files.modifiedTime = files.modifiedTime.apply(parse_timestamp_str)
         files.rename(columns={'webViewLink': 'url',
                               'thumbnailLink': 'thumb',
                               'iconLink': 'icon',
@@ -195,17 +208,32 @@ class RecentDocs(ApiTable):
                               'createdTime': 'date_created',
                               'lastModifyingUser': 'last_user',
                               'name': 'title'
-                             }, inplace=True)
+                              }, inplace=True)
         # not used: 'id'
-        #file_columns = ['title', 'date_modified', 'date_created', 'last_user', 'url', 'icon' , 'kind', 'thumb']
+        # file_columns = ['title', 'date_modified', 'date_created', 'last_user', 'url', 'icon' , 'kind', 'thumb']
         files = files[self.cols].copy()
         self._df = files
 
-    @staticmethod
-    def parse_timestamp_str(time):
-        """Get naive datetime in UTC."""
-        # manual version
-        # datetime.strptime(time, '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=timezone.utc)
-        timestamp = pd.to_datetime(time).replace(tzinfo=timezone.utc)
-        # dt = timestamp.to_pydatetime().replace(tzinfo=timezone.utc)
-        return ApiTable._get_utc_naive(timestamp)
+
+class ReviewTable(ApiTable):
+
+    def __init__(self, root_folder_id, root_folder_title):
+        self.refresh_minutes = 5
+        self.root_folder_id = root_folder_id
+        self.root_folder_title = root_folder_title
+        super().__init__()
+
+    cols_show = OrderedDict([
+        ('title', 'Document'),
+        ('date_modified', 'Modified'),
+        # ('last_user', 'Modified by')
+    ])
+    cols_other = ['path', 'date_created', 'icon', 'id', 'kind', 'last_user', 'mimeType',
+                  'thumb', 'url_content', 'url_view']
+    # cols_other = ['date_created', 'url', 'icon', 'kind', 'thumb']
+
+    def refresh_df(self):
+        files = file_tree_to_df(self.root_folder_id, self.root_folder_title)
+        files = files[list(ReviewTable.cols_show) + ReviewTable.cols_other]
+        files = files.sort_values(['path', 'title'])
+        self._df = files

@@ -1,9 +1,16 @@
 import os
-from dotenv import load_dotenv
-from collections import OrderedDict
+import logging
 
-basedir = os.path.abspath(os.path.dirname(__file__))
-load_dotenv(os.path.join(basedir, '.env'))
+from dotenv import load_dotenv, find_dotenv
+
+logger = logging.getLogger(__name__)
+
+# basedir = os.path.abspath(os.path.dirname(__file__))
+# env_path = os.path.join(basedir, '.env')
+env_path = find_dotenv()
+logger.info(env_path)
+load_dotenv(env_path)
+
 
 class Config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-will-never-guess'
@@ -42,6 +49,9 @@ class Config(object):
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_SENDER = os.environ.get('MAIL_SENDER')
+
+    REVIEW_FOLDER_ID = os.environ.get('REVIEW_FOLDER_ID')
+    REVIEW_FOLDER_TITLE = os.environ.get('REVIEW_FOLDER_TITLE')
 
 
 class DevelopmentConfig(Config):

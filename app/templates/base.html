@@ -26,6 +26,7 @@
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                 <ul class="nav navbar-nav">
                     {% if current_user.is_authenticated and current_user.in_cgem %}
+                    <li><a href="/review">Review_docs</a></li>
                     <li><a href="http://gem-net.net/">GEM-NET</a></li>
                     <li><a href="https://gem-net.slack.com/">Slack</a></li>
                     <li><a href="https://benchling.com/organizations/gem-net/projects">Benchling</a></li>

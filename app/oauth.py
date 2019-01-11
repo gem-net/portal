@@ -1,7 +1,7 @@
 import json
 
-from rauth import OAuth1Service, OAuth2Service
-from flask import current_app, url_for, request, redirect, session
+from rauth import OAuth2Service
+from flask import current_app, url_for, request, redirect
 
 
 class OAuthSignIn(object):
@@ -21,13 +21,12 @@ class OAuthSignIn(object):
 
     def get_callback_url(self):
         callback_url = url_for('oauth_callback', provider=self.provider_name,
-                       _external=True)
+                               _external=True)
         if 'X-Forwarded-Server' in request.headers:
             server_local = request.headers['Host']
             server_public = request.headers['X-Forwarded-Host']
             callback_url = callback_url.replace(server_local, server_public)
         return callback_url
-
 
     @classmethod
     def get_provider(self, provider_name):
@@ -71,7 +70,7 @@ class GoogleSignIn(OAuthSignIn):
             decoder=decode_json
         )
         me = oauth_session.get('people/me?personFields=emailAddresses,names').json()
-        account_id, email_primary, email_list = self.parse_email_addreses(me)
+        account_id, email_primary, email_list = self.parse_email_addresses(me)
         display_name = self.parse_display_name(me)
         if not display_name:
             display_name = email_primary.split('@')[0]
@@ -86,7 +85,7 @@ class GoogleSignIn(OAuthSignIn):
         return [i for i in vals if 'primary' in i['metadata']][0]
 
     @staticmethod
-    def parse_email_addreses(data_dict):
+    def parse_email_addresses(data_dict):
         email_vals = data_dict['emailAddresses']
         primary = GoogleSignIn.get_primary(email_vals)
         account_id = primary['metadata']['source']['id']

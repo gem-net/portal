@@ -1,10 +1,7 @@
-from collections import defaultdict, OrderedDict
-from datetime import datetime
 from threading import Thread
 
-from flask import current_app, render_template, url_for
+from flask import current_app
 from flask_mail import Message
-from oauth2client.service_account import ServiceAccountCredentials
 
 from app import mail
 
