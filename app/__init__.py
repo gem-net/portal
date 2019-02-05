@@ -1,5 +1,7 @@
 import os
+import sys
 from datetime import datetime
+import logging
 
 from flask import Flask, g, current_app
 from flask_sqlalchemy import SQLAlchemy
@@ -10,6 +12,9 @@ from flask_moment import Moment
 
 from .oauth import OAuthSignIn
 from .config import config
+
+
+logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
 app = Flask(__name__)
 app.config.from_object(config[os.getenv('FLASK_ENV') or 'default'])
@@ -53,7 +58,7 @@ def update_g():
     g.cal = TABLE_DICT['cal']
     g.recent_docs = TABLE_DICT['recent_docs']
     g.statuses = TABLE_DICT['statuses']
-    g.review = TABLE_DICT['review']
+    # g.review = TABLE_DICT['review']
 
 
 @app.before_first_request
@@ -63,15 +68,15 @@ def update_members_and_tables():
     new_dict = get_members_dict()
     MEMBERS_DICT.update(new_dict)
 
-    review_folder_id = current_app.config['REVIEW_FOLDER_ID']
-    review_folder_title = current_app.config['REVIEW_FOLDER_TITLE']
+    # review_folder_id = current_app.config['REVIEW_FOLDER_ID']
+    # review_folder_title = current_app.config['REVIEW_FOLDER_TITLE']
 
     TABLE_DICT.clear()
     TABLE_DICT.update({
         'cal': Calendar(),
         'recent_docs': RecentDocs(),
         'statuses': StatusTable(db.engine),
-        'review': ReviewTable(review_folder_id, review_folder_title),
+        # 'review': ReviewTable(review_folder_id, review_folder_title),
     })
 
 

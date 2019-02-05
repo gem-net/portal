@@ -1,0 +1,65 @@
+<!-- goes in body -->
+{% extends "base.html" %}
+
+{% import "bootstrap/wtf.html" as wtf %}
+{% block app_content %}
+
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-xs-12 col-sm-12 col-md-12 col-lg-offset-1 col-lg-10">
+
+    <h1><i class="fas fa-list-ol"></i>Compound Synthesis Protocols</h1>
+
+    <p>Compounds are grouped by category. Click on a compound to view its dedicated page.</p>
+
+    {% for categ in categories %}
+    <h2><i class="far fa-folder-open mr-1"></i>{{ categ }}</h2>
+    {% set df = categ_tables[categ] %}
+    {% set cols = df.columns %}
+    <div class="table-responsive">
+        <table class="table table-condensed table-striped table-hover">
+            <thead><tr>
+            {% for col in show_cols %}
+                <th width="{{ col_dict[col][2] }}">{{ col_dict[col][0] }}</th>
+            {% endfor %}
+            </tr></thead>
+            <tbody>
+            {% for ind, row in df.iterrows() %}
+                <tr>
+                {% for col in show_cols %}
+                    {% if col == 'compound' %}
+                        <td>
+                            <a href="/compounds/{{ row.loc['compound_safe'] }}">{{ row[col] }}</a>
+                            {#<span type="button" class="btn btn-xs btn-info" data-toggle="popover" title="Description" data-content="{{ row.description }}"><i class="far fa-question-circle"></i></span>#}
+                        </td>
+{#                    {% elif col_name == "start" %}#}
+{#                        <td>{{ moment(val).calendar() }}</td>#}{# COMMENT ({{ moment(val).fromNow() }}) #}
+                    {% else %}
+                        <td>{{ row[col] }}</td>
+                    {% endif %}
+                {% endfor %}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>{# END CATEGORY TABLE #}
+    {% endfor %}
+
+    </div>{# END COLUMN #}
+
+
+  </div>{# END ROW #}
+</div> {# END CONTAINER FLUID#}
+
+
+{% endblock %}{# END BLOCK APP_CONTENT #}
+
+
+{% block scripts_inner %}
+<script>
+$(function () {
+  $('[data-toggle="popover"]').popover()
+})
+</script>
+{% endblock %}

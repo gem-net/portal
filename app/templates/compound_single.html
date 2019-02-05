@@ -1,0 +1,98 @@
+<!-- goes in body -->
+{% extends "base.html" %}
+
+{% import "bootstrap/wtf.html" as wtf %}
+{% block app_content %}
+
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-xs-12 col-sm-12 col-md-12 col-lg-offset-1 col-lg-10">
+
+    <h1><i class="far fa-file"></i>{{ c['compound'].iloc[0] }}</h1>
+
+
+    <h2>Summary</h2>
+    <div class="table-responsive">
+        <table class="table table-condensed table-striped table-hover">
+        {% for col in overview_cols %}
+            <tr>
+            <th width="100">{{ col_dict[col][0] }}</th>
+            <td>{{ c[col].iloc[0] }}</td>
+            </tr>
+        {% endfor %}
+        </table>
+    </div>
+
+
+    <h2>Documents</h2>
+    <div class="table-responsive">
+        <table class="table table-condensed table-striped table-hover">
+            <thead>
+            {% for col in single_cols %}
+                <th width="{{ col_dict[col][2] }}">{{ col_dict[col][0] }}</th>
+            {% endfor %}
+            </thead>
+            <tbody>
+            {% for ind, row in docs.iterrows() %}
+                <tr>
+                {% for col in single_cols %}
+                    <td>
+                        {% if col == 'title' %}
+                            <a href="{{ row['url_view'] }}" target="_blank">{{ row['title'] }}</a>
+                        {% else %}
+                            {{ row[col] }}
+                        {% endif %}
+                    </td>
+                {% endfor %}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>{# END DOCS TABLE #}
+
+    <h2>Data</h2>
+    <p>The table below shows all files associated with this protocol.</p>
+
+    <div class="table-responsive">
+        <table class="table table-condensed table-striped table-hover">
+            <thead>
+            {% for col in single_cols %}
+                <th width="{{ col_dict[col][2] }}">{{ col_dict[col][0] }}</th>
+            {% endfor %}
+            </thead>
+            <tbody>
+            {% for ind, row in data.iterrows() %}
+                <tr>
+                {% for col in single_cols %}
+                    <td>
+                        {% if col == 'title' %}
+                            <a href="{{ row['url_view'] }}" target="_blank">{{ row['title'] }}</a>
+                        {% else %}
+                            {{ row[col] }}
+                        {% endif %}
+                    </td>
+                {% endfor %}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>{# END DATA TABLE #}
+
+    </div>{# END COLUMN #}
+
+
+  </div>{# END ROW #}
+</div> {# END CONTAINER FLUID#}
+
+
+{% endblock %}{# END BLOCK APP_CONTENT #}
+
+
+{% block scripts_inner %}
+<script>
+$(function () {
+  $('[data-toggle="popover"]').popover()
+})
+</script>
+{% endblock %}

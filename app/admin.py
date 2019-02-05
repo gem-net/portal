@@ -9,7 +9,7 @@ from googleapiclient.discovery import build
 # from oauth2client import file, client, tools
 
 from .helpers import parse_timestamp_str
-from .review import file_tree_to_df
+from .drive import file_tree_to_df
 
 
 def get_service_handles():
@@ -198,7 +198,8 @@ class RecentDocs(ApiTable):
                               fields=file_fields)
         res = cmd.execute()
         files = pd.DataFrame.from_records(res['files'])
-        files.lastModifyingUser = files.lastModifyingUser.apply(lambda v: v['displayName'])
+        files.lastModifyingUser = files.lastModifyingUser.apply(
+            lambda v: v['displayName'] if type(v) == dict else v)
         files.createdTime = files.createdTime.apply(parse_timestamp_str)
         files.modifiedTime = files.modifiedTime.apply(parse_timestamp_str)
         files.rename(columns={'webViewLink': 'url',

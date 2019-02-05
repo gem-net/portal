@@ -53,6 +53,9 @@ class Config(object):
     REVIEW_FOLDER_ID = os.environ.get('REVIEW_FOLDER_ID')
     REVIEW_FOLDER_TITLE = os.environ.get('REVIEW_FOLDER_TITLE')
 
+    COMPOUNDS_DIR_ID = os.environ.get('COMPOUNDS_DIR_ID')
+    COMPOUNDS_PICKLE = os.environ.get('COMPOUNDS_PICKLE')
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

@@ -70,7 +70,9 @@ def review():
 
 @app.route('/download/<file_id>')
 def download(file_id):
-    from .review import download_file
+    if not (current_user.is_authenticated and current_user.in_cgem):
+        return render_template("index.html")
+    from .drive import download_file
 
     files = g.review.df
     try:
@@ -80,7 +82,8 @@ def download(file_id):
         return redirect(url_for('download'))
     title = file_info.title
     mime_orig = file_info.mimeType
-    fh, filename, mime_out = download_file(file_id, title=title, mime_orig=mime_orig)
+    fh, filename, mime_out = download_file(file_id, title=title,
+                                           mime_orig=mime_orig)
     fh.seek(0)
     return send_file(fh, mimetype=mime_out,
                      as_attachment=True, attachment_filename=filename)
@@ -88,7 +91,9 @@ def download(file_id):
 
 @app.route('/build_zip')
 def get_folder_zip():
-    from .review import download_folder_zip
+    if not (current_user.is_authenticated and current_user.in_cgem):
+        return render_template("index.html")
+    from .drive import download_folder_zip
 
     files = g.review.df
     zipped_file = download_folder_zip(files)
@@ -97,3 +102,55 @@ def get_folder_zip():
     zipped_file.seek(0)
     return send_file(zipped_file, mimetype='application/zip',
                      as_attachment=True, attachment_filename=out_name)
+
+
+@app.route('/compounds',  methods=['GET'])
+def show_compounds():
+    if not (current_user.is_authenticated and current_user.in_cgem):
+        return render_template("index.html")
+    from .compounds import get_categ_tables, SUMMARY_COL_DICT
+    show_cols = list()
+    for col in SUMMARY_COL_DICT:
+        if SUMMARY_COL_DICT[col][1]:
+            show_cols.append(col)
+    categories, categ_tables = get_categ_tables()
+    return render_template("compounds.html",
+                           categories=categories,
+                           categ_tables=categ_tables,
+                           show_cols=show_cols,
+                           col_dict=SUMMARY_COL_DICT)
+
+
+@app.route('/compounds/<compound_safe>',  methods=['GET'])
+def show_single_compound(compound_safe):
+    if not (current_user.is_authenticated and current_user.in_cgem):
+        return render_template("index.html")
+    from .compounds import COMPOUNDS, SINGLE_COL_DICT
+    col_dict = SINGLE_COL_DICT
+    overview_cols = list()
+    single_cols = list()
+    for col in col_dict:
+        if col_dict[col][1] == 'overview':
+            overview_cols.append(col)
+        elif col_dict[col][1] == 'single':
+            single_cols.append(col)
+    c = COMPOUNDS['all'].loc[lambda v: v.compound_safe == compound_safe]
+    c.sort_values(['is_doc', 'title'], ascending=[False, True], inplace=True)
+    docs = c[c.is_doc]
+    data = c[c.is_data]
+    if not len(c):
+        abort(404)
+    return render_template("compound_single.html",
+                           c=c, data=data, docs=docs,
+                           overview_cols=overview_cols,
+                           single_cols=single_cols,
+                           col_dict=SINGLE_COL_DICT)
+
+
+@app.route('/reload-compounds',  methods=['GET'])
+def reload_compounds():
+    from .compounds import reload_listing, load_prebuilt_listing
+    reload_listing()
+    flash("Compound re-indexing in progress, and may take up to 20 seconds.",
+          'message')
+    return redirect(url_for('index'))
