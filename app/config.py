@@ -24,7 +24,6 @@ class Config(object):
             'secret': os.environ.get('GOOGLE_SECRET')
         }
     }
-    DB_CNF = os.environ.get('DB_CNF')
     DB_HOST = os.environ.get('DB_HOST')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     # recycle connection before mysql default 8hr wait timeout
@@ -42,16 +41,6 @@ class Config(object):
         'https://www.googleapis.com/auth/calendar.events.readonly']
 
     TEAM_DRIVE_ID = os.environ.get('TEAM_DRIVE_ID')
-
-    MAIL_SERVER = os.environ.get('MAIL_SERVER')
-    MAIL_PORT = int(os.environ.get('MAIL_PORT') or 25)
-    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS') is not None
-    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    MAIL_SENDER = os.environ.get('MAIL_SENDER')
-
-    REVIEW_FOLDER_ID = os.environ.get('REVIEW_FOLDER_ID')
-    REVIEW_FOLDER_TITLE = os.environ.get('REVIEW_FOLDER_TITLE')
 
     COMPOUNDS_DIR_ID = os.environ.get('COMPOUNDS_DIR_ID')
     COMPOUNDS_PICKLE = os.environ.get('COMPOUNDS_PICKLE')
