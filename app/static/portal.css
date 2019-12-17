@@ -29,12 +29,102 @@ td img {
 }
 
 .drive-listing pre {
-    margin-top: 2rem;
+    margin-top: 1rem;
     /*margin-bottom: 1rem;*/
     background-color: #00648c;
     color: white;
 }
 
+.popover-content {
+    overflow: auto; /* for calendar description overflow */
+}
+
+.project-box {
+    border: black 1px solid;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+}
+
+.project-header {
+    margin: 10px 10px;
+    color: white;
+    font-size: large;
+}
+
+h2.section-header {
+    overflow-wrap: break-word;
+    font-size: small;
+    color: darkgrey;
+    margin-top: 0px;
+}
+
+.project-sections {
+    /*display: flex;*/
+    /*flex-wrap: wrap;*/
+    column-count: 1;
+    -webkit-column-count: 1; /* Chrome, Safari, Opera */
+    -moz-column-count: 1; /* Firefox */
+    padding: 0px 5px;
+    background-color: white;
+    column-rule: 1px dotted;
+}
+
+@media (min-width: 600px){
+  .project-sections {
+    column-count: 2;
+    -webkit-column-count: 2; /* Chrome, Safari, Opera */
+    -moz-column-count: 2; /* Firefox */
+  }
+}
+
+@media (min-width: 768px){
+  .project-sections {
+    column-count: 3;
+    -webkit-column-count: 3; /* Chrome, Safari, Opera */
+    -moz-column-count: 3; /* Firefox */
+  }
+}
+
+
+.section-box {
+    /*max-width: 300px;*/
+    break-inside: avoid; /* IE 10+ */
+    -webkit-column-break-inside: avoid; /* Chrome, Safari, Opera */
+    page-break-inside: avoid; /* Firefox */
+    margin: 0px 10px;
+    padding-top: 20px;
+}
+
+i.user-indicator {
+    color: red;
+}
+
+span.user-indicator {
+    color: red;
+    margin-right: 5px;
+    font-size: large;
+}
+
+span.due-date {
+    color: skyblue;
+    margin-left: 5px;
+    white-space: nowrap;
+}
+
+span.overdue {
+    color: red;
+}
+
+span.task-name a {
+    color: #333;
+}
+
+span.html-notes {
+    background-color: darkgrey;
+    border-color: grey;
+}
 
 
 

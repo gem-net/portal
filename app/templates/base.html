@@ -26,6 +26,7 @@
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                 <ul class="nav navbar-nav">
                     {% if current_user.is_authenticated and current_user.in_cgem %}
+                    <li><a href="/asana">Tasks</a></li>
                     <li><a href="/compounds">Compounds</a></li>
                     <li><a href="http://strains.gem-net.net">Strains</a></li>
                     {# <li><a href="/review">Review</a></li> #}

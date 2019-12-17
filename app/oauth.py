@@ -1,7 +1,11 @@
 import json
+import logging
 
 from rauth import OAuth2Service
 from flask import current_app, url_for, request, redirect
+
+
+logger = logging.getLogger(__name__)
 
 
 class OAuthSignIn(object):
@@ -70,14 +74,17 @@ class GoogleSignIn(OAuthSignIn):
             decoder=decode_json
         )
         me = oauth_session.get('people/me?personFields=emailAddresses,names').json()
-        account_id, email_primary, email_list = self.parse_email_addresses(me)
+        logger.info("\n\n%s\n\n", me)
+        account_id, email_primary, alt_emails = self.parse_email_addresses(me)
+        alt_email_str = ','.join(alt_emails)
         display_name = self.parse_display_name(me)
         if not display_name:
             display_name = email_primary.split('@')[0]
         return (
             account_id,
             display_name,
-            email_primary
+            email_primary,
+            alt_email_str
         )
 
     @staticmethod
@@ -86,12 +93,17 @@ class GoogleSignIn(OAuthSignIn):
 
     @staticmethod
     def parse_email_addresses(data_dict):
-        email_vals = data_dict['emailAddresses']
-        primary = GoogleSignIn.get_primary(email_vals)
-        account_id = primary['metadata']['source']['id']
-        email_primary = primary['value']
-        email_list = [i['value'] for i in email_vals]
-        return account_id, email_primary, email_list
+        account_id, email_primary = None, None
+        alt_emails = []
+        for info in data_dict['emailAddresses']:
+            is_primary = 'primary' in info['metadata'] and \
+                         info['metadata']['primary']
+            if is_primary:
+                account_id = info['metadata']['source']['id']
+                email_primary = info['value']
+            else:
+                alt_emails.append(info['value'])
+        return account_id, email_primary, alt_emails
 
     @staticmethod
     def parse_display_name(data_dict):

@@ -29,7 +29,7 @@
 
 <div class="container-fluid">
   <div class="row">
-    <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
+    <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">  {# FIRST COLUMN #}
     <h1><i class="far fa-calendar-alt"></i>Upcoming events</h1>
     <p>Browse and create new events at <a href="https://calendar.google.com/calendar/r">Google Calendar</a>. Click a <i class="far fa-question-circle"></i> icon to view the event description.</p>
     <p><strong>Next event {{ moment(cal.df.start.iloc[0]).fromNow() }}.</strong></p>
@@ -49,8 +49,9 @@
                     {% if col_name == 'title' %}
                         <td>
                             <a href="{{ row.loc['url'] }}" target="_blank">{{ val }}</a>
+                            {% if row.description %}
                             <span type="button" class="btn btn-xs btn-info" data-toggle="popover" title="Description" data-content="{{ row.description }}"><i class="far fa-question-circle"></i></span>
-                            
+                            {% endif %}
                         </td>
                     {% elif col_name == "start" %}
                         <td>{{ moment(val).calendar() }}{# COMMENT ({{ moment(val).fromNow() }}) #}</td>
@@ -64,7 +65,75 @@
         </table>
     </div>
 
-    <h1><i class="fas fa-tasks"></i>Strain requests</h1>
+    <h1><i class="fas fa-tasks"></i>My assigned tasks</h1>
+        <p>To see all your tasks and unassigned tasks in context, check out the
+            portal's <a href="asana">Tasks page</a>.</p>
+        <div class="table-responsive">
+        {% if my_tasks is not none %}
+        <p>Your upcoming tasks, ordered by deadline.</p>
+        <table class="table table-condensed table-striped table-hover">
+            <thead>
+            <tr>
+                <th>Name</th>
+                <th>Due</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for _, task in my_tasks.iterrows() %}
+            <tr>
+            <td>
+                {% for proj_name, section_name in task['location'] %}
+                    {% set show_location = proj_name %}
+                    {% if section_name %}{% set show_location = proj_name ~ ': ' ~ section_name %}{% endif %}
+                    <span type="button"
+                          style="background-color: {{ abbrv_colors[proj_name][1] }}"
+                          class="btn btn-xs btn-info html-notes"
+                          data-toggle="popover"
+                          data-trigger="click"
+                          data-html="true"
+                          data-content="{{ show_location }}">
+                        {{ abbrv_colors[proj_name][0] }}</span>
+                {% endfor %}
+                <span class="task-name">
+                    <a target="_blank" href="{{ task['url'] }}">
+                        {{ task['name'] }}
+                    </a>
+                </span>
+                {% if task['html_notes'] %}
+                    <span type="button" class="btn btn-xs btn-info html-notes"
+                          data-toggle="popover"
+                          data-trigger="click"
+                          data-html="true"
+                          data-content="{{ task['html_notes'] }}">
+                        <i class="far fa-question-circle"></i></span>
+                {% endif %}
+            </td>
+            <td>
+                {% if task['due_on'] %}
+                    {% if task['overdue'] %}
+                        <span class="due-date overdue">
+                    {% else %}
+                        <span class="due-date">
+                    {% endif %}
+                    {% if task['due_this_year'] %}
+                        {{ moment(task['due_ts']).format("MMM D") }}
+                    {% else %}
+                        {{ moment(task['due_ts']).format("MMM D, YY") }}
+                    {% endif %}
+                    </span>
+                {% endif %}
+            </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p style="font-weight: bold;">You don't have any outstanding tasks. Kudos on your productivity!</p>
+        {% endif %}
+    </div>
+
+
+    <h1><i class="fas fa-flask"></i>Strain requests</h1>
     <div class="table-responsive">
         <p>View, request and respond using the <a href="http://strains.gem-net.net" target="_blank">Strains app.</a></p>
         <table class="table table-condensed table-striped table-hover">
@@ -88,7 +157,11 @@
             </tbody>
         </table>
     </div>
-    </div>
+
+
+
+    </div>  {# END OF COLUMN #}
+
 
     <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
     <h1><i class="far fa-file-alt"></i>Recent docs</h1>

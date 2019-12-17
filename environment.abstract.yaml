@@ -49,3 +49,4 @@ dependencies:
   - Werkzeug
   - WTForms
   - networkx
+  - feather-format

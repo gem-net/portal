@@ -1,0 +1,112 @@
+<!-- goes in body -->
+{% extends "base.html" %}
+
+{% import "bootstrap/wtf.html" as wtf %}
+{% block app_content %}
+
+
+    <div class="container-fluid">
+    <div class="row">
+        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-offset-1 col-lg-10">
+            <h1>Tasks</h1>
+            <p>This page shows all Asana tasks that are either unassigned or have been
+                assigned to you (<i class="fas fa-user user-indicator"></i>).
+                <span type="button" class="btn btn-xs btn-info"
+                      data-toggle="popover"
+                      data-trigger="click"
+                      data-html="true"
+                      data-content='<ul>
+                    <li>Click on task titles to be taken to the corresponding Asana page.</li>
+                    <li>Click on the <i class="far fa-question-circle"></i> icons to view
+                        the task descriptions, if present.</li></ul>'>
+                    <i class="fas fa-info-circle"></i></span>
+                <span type="button" class="btn btn-xs btn-warning"
+                      data-toggle="popover"
+                      data-trigger="click"
+                      data-html="true"
+                      data-content='I want to refresh the data and am happy to
+                      wait ten seconds or so for this to happen.<br>
+                      <a href="update-tasks" type="button" class="btn btn-xs btn-info">
+                      Confirm</a>'>
+                    <i class="fas fa-sync-alt"></i></span>
+            </p>
+
+        </div>
+    </div>
+    <div class="row">
+    <div class="col-xs-12 col-sm-12 col-md-12 col-lg-offset-1 col-lg-10">
+
+    {% for project_name in show_dict %}
+        <div class="project-box" style="background-color:{{ color_dict[project_name] }}">
+            <h1 class="project-header">
+                <i class="far fa-check-circle"></i>{{ project_name }}</h1>
+            <div class="project-sections" style="column-rule-color:{{ color_dict[project_name] }}">
+            {% for section_name in show_dict[project_name] %}
+                <div class="section-box">
+                    <h2 class="section-header">{{ section_name }}</h2>
+
+                    <div class="table-responsive">
+                    <table class="table table-condensed table-striped table-hover">
+                    {% for _, task in show_dict[project_name][section_name].iterrows() %}
+                        <tr>
+                        <td>
+                            {% if task['mine'] %}
+                                <span class="user-indicator"><i class="fas fa-user"></i></span>
+                            {% endif %}
+                            <span class="task-name">
+                                <a target="_blank" href="{{ task['url'] }}">
+                                    {{ task['name'] }}
+                                </a>
+                            </span>
+
+                            {% if task['html_notes'] %}
+                                <span type="button" class="btn btn-xs btn-info html-notes"
+                                      data-toggle="popover"
+                                      data-trigger="click"
+                                      data-html="true"
+                                      data-content="{{ task['html_notes'] }}">
+                                    <i class="far fa-question-circle"></i></span>
+                            {% endif %}
+
+                            {% if task['due_on'] %}
+                                {% if task['overdue'] %}
+                                <span class="due-date overdue">
+                                {% else %}
+                                <span class="due-date">
+                                {% endif %}
+                                {% if task['due_this_year'] %}
+                                    {{ moment(task['due_ts']).format("MMM D") }}
+                                {% else %}
+                                    {{ moment(task['due_ts']).format("MMM D, YY") }}
+                                {% endif %}
+                                </span>
+                            {% endif %}
+                        </td>
+                        </tr>
+                    {% endfor %}
+                    </table>
+                    </div>{# END DATA TABLE #}
+                </div>
+            {% endfor %}  {# end loop through sections#}
+            </div>
+        </div> {# END PROJECT BOX #}
+    {% endfor %}  {# end loop through projects#}
+
+
+    </div>{# END COLUMN #}
+
+
+  </div>{# END ROW #}
+</div> {# END CONTAINER FLUID#}
+
+
+{% endblock %}{# END BLOCK APP_CONTENT #}
+
+
+{% block scripts_inner %}
+<script>
+$(function () {
+  $('[data-toggle="popover"]').popover()
+})
+</script>
+{% endblock %}

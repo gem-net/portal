@@ -1,26 +1,30 @@
-from collections import OrderedDict
+import logging
+from collections import OrderedDict, namedtuple
 from datetime import date, datetime, timezone, timedelta
 
 import pandas as pd
 from flask import current_app
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-# from httplib2 import Http
-# from oauth2client import file, client, tools
 
 from .helpers import parse_timestamp_str
 from .drive import file_tree_to_df
+from .models import User
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_service_handles():
     """Get dictionary of {service_name: service_handle}."""
     SERVICE_ACCOUNT_FILE = current_app.config['SERVICE_ACCOUNT_FILE']
     # GROUP_KEY = current_app.config['GROUP_KEY']
-    SCOPES = current_app.config['SCOPES'] 
+    SCOPES = current_app.config['SCOPES']
 
     credentials = service_account.Credentials.from_service_account_file(
         SERVICE_ACCOUNT_FILE, scopes=SCOPES)
-    delegated_credentials = credentials.with_subject('stephen@gem-net.net')
+    delegated_credentials = credentials.with_subject(
+        current_app.config['CREDENTIALS_AS_USER'])
 
     dir_service = build('admin', 'directory_v1', credentials=delegated_credentials, cache_discovery=False)
     files_service = build('drive', 'v3', credentials=delegated_credentials, cache_discovery=False)
@@ -36,12 +40,52 @@ SERVICE_HANDLES = get_service_handles()
 
 
 def get_members_dict():
-    """Get dictionary of {google_id: email_address}."""    
+    """Get dictionary of {google_id: email_address}.
+
+    Return:
+         members_dict (dict): google ID: email dictionary.
+    """
     service = SERVICE_HANDLES['dir']
+
+    # GOOGLE GROUP MEMBERS
     group_key = current_app.config['GROUP_KEY']
+    logging.info("Looking up group members list.")
     res = service.members().list(groupKey=group_key).execute()
-    members_dict = dict([(i['id'], i['email']) for i in res['members'] if 'email' in i])
+    members_dict = {i['id']: i['email'] for i in res['members'] if 'email' in i}
+
+    # DOMAIN-ONLY MEMBERS
+    domain_users = get_domain_users()
+    domain_dict = {u.id: u.email for u in domain_users}
+    members_dict.update(domain_dict)
+
     return members_dict
+
+
+def get_domain_users():
+    """Get list of domain users (who might not be in specified Google Group).
+
+    Warning: will only fetch up to 100 users.
+    """
+    users = []
+    service = SERVICE_HANDLES['dir']
+    logger.info("Looking up domain-specific users.")
+    res = service.users().list(customer='my_customer').execute()
+    User = namedtuple('User', ['id', 'email', 'full_name'])
+    for user in res['users']:
+        user_id = user['id']
+        full_name = user['name']['fullName']
+        email = user['primaryEmail']
+        users.append(User(user_id, email, full_name))
+    return users
+
+
+def find_user_by_email(find_email):
+    user = None
+    for u in User.query.all():
+        if find_email in u.known_emails:
+            user = u
+            break
+    return user
 
 
 class ApiTable:
@@ -76,9 +120,9 @@ class ApiTable:
 
 
 class StatusTable(ApiTable):
-    
+
     cols_show = OrderedDict([
-        ('status', 'Status'), 
+        ('status', 'Status'),
         ('n_requests', 'Requests'),
         ])
     cols_other = []
@@ -116,7 +160,7 @@ class StatusTable(ApiTable):
 
 class Calendar(ApiTable):
     cols_show = OrderedDict([
-        ('title', 'Item'), 
+        ('title', 'Item'),
         ('start', 'When'),
         ('location', 'Where')])
     cols_other = ['description', 'url', 'end']
@@ -125,11 +169,11 @@ class Calendar(ApiTable):
     def refresh_df(self):
         service = SERVICE_HANDLES['cal']
         collection = service.events()
-        cmd = collection.list(calendarId='gem-net.net_93bpcnm07c6l0d56eqgssq3eik@group.calendar.google.com',
+        cmd = collection.list(calendarId=current_app.config['CALENDAR_ID'],
                               orderBy='startTime',
                               singleEvents=True)
         res = cmd.execute()
-        
+
         cal = pd.DataFrame.from_records(res['items'])
         cal.rename(columns={'htmlLink': 'url', 'summary': 'title'}, inplace=True)
         cal = cal[self.cols].copy()
@@ -137,7 +181,8 @@ class Calendar(ApiTable):
         cal['start'] = cal['start'].apply(Calendar.parse_datetime)
         cal['end'] = cal['end'].apply(Calendar.parse_datetime)
         cal['in_past'] = cal['end'].apply(Calendar.in_past)
-
+        cal['description'] = cal['description'].apply(
+            lambda v: v.strip() if type(v) is str else '')
         cal = cal.query('~in_past').head(self.show_n)
         self._df = cal
 
@@ -157,7 +202,7 @@ class Calendar(ApiTable):
         stripped = time[:-3] + time[-2:]  # remove colon in UTC offset
         dt = datetime.strptime(stripped, '%Y-%m-%dT%H:%M:%S%z')
         return ApiTable._get_utc_naive(dt)
-     
+
     @staticmethod
     def in_past(t):
         """Get 'in past' status (True or False) for date or time.
@@ -177,7 +222,7 @@ class Calendar(ApiTable):
 
 class RecentDocs(ApiTable):
     cols_show = OrderedDict([
-        ('title', 'Document'), 
+        ('title', 'Document'),
         ('date_modified', 'Modified'),
         ('last_user', 'Modified by')])
 

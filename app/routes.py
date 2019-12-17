@@ -1,30 +1,60 @@
-from datetime import datetime
+import logging
 
-from flask import redirect, url_for, render_template, flash, abort, g, send_file
+from flask import redirect, url_for, render_template, flash, abort, g, request
 from flask_login import login_user, logout_user,\
     current_user
 
-from app import app, db, OAuthSignIn, update_members_and_tables
+from app import app, db, OAuthSignIn, update_table_dict, update_members_dict, \
+    update_name_dict
+from .asana import update_asana_ids, update_projects_listing, \
+    get_asana_id_for_user, load_user_assigned_tasks, \
+    get_task_dict_for_user, projects, update_tasks_links
 from .models import User
+from .decorators import membership_required
+from .admin import find_user_by_email
+
+
+_logger = logging.getLogger(__name__)
 
 
 @app.route('/reload')
-def load_members_list():
-    if current_user.is_authenticated and current_user.in_cgem:
-        update_members_and_tables()
-        n_members = len(g.members_dict)
-        msg = 'Emails and members list updated ({} members).'.format(n_members)
-        flash(msg, 'message')
-        return render_template('reload.html')
-    else:
-        abort(404)
+@membership_required
+def reload_all_data():
+    update_table_dict()
+    update_members_dict()
+    update_name_dict()
+    update_asana_ids()
+    update_projects_listing()
+    update_tasks_links()
+    n_members = len(g.members_dict)
+    msg = 'Members list and tasks updated ({} members).'.format(n_members)
+    flash(msg, 'message')
+    return render_template('reload.html')
+
+
+@app.route('/update-tasks')
+@membership_required
+def update_tasks():
+    update_projects_listing()
+    update_tasks_links()
+    msg = 'Task list updated.'
+    flash(msg, 'message')
+    return redirect(url_for('asana_tasks'))
 
 
 @app.route('/',  methods=['POST', 'GET'])
 def index():
     if not (current_user.is_authenticated and current_user.in_cgem):
         return render_template("index.html")
-    return render_template("index.html", cal=g.cal, docs=g.recent_docs, statuses=g.statuses)
+    email = request.args.get('email', '')
+    user = find_user_by_email(email) if email else None
+    user = user if user else current_user
+    my_tasks = load_user_assigned_tasks(user)
+    abbrv_colors = projects.set_index('name')[['abbrev', 'hex_color']]\
+        .apply(lambda r: tuple(r), axis=1).to_dict()
+    return render_template("index.html", cal=g.cal, docs=g.recent_docs,
+                           statuses=g.statuses, my_tasks=my_tasks,
+                           abbrv_colors=abbrv_colors)
 
 
 @app.route('/logout')
@@ -46,68 +76,43 @@ def oauth_callback(provider):
     if not current_user.is_anonymous:
         return redirect(url_for('index'))
     oauth_obj = OAuthSignIn.get_provider(provider)
-    social_id, username, email = oauth_obj.callback()
+    social_id, username, email, alt_email_str = oauth_obj.callback()
     if social_id is None:
         flash('Authentication failed.', 'error')
         return redirect(url_for('index'))
     user = User.query.filter_by(social_id=social_id).first()
+    modified = False
+    # CREATE NEW USER IF NOT IN DB
     if not user:
         if social_id in g.members_dict:
             email = g.members_dict[social_id]
-        user = User(social_id=social_id, display_name=username, email=email)
+        user = User(social_id=social_id, display_name=username, email=email,
+                    alt_email_str=alt_email_str)
+        modified = True
+    use_name = user.get_official_name()
+    # UPDATE EMAIL DATA IF NECESSARY
+    if user.email != email or user.alt_email_str != alt_email_str \
+            or user.use_name != use_name:
+        user.email = email
+        user.alt_email_str = alt_email_str
+        user.use_name = use_name
+        modified = True
+    # GET ASANA IDS IF MATCH PRESENT
+    if user.asana_id is None:
+        asana_id = get_asana_id_for_user(user)
+        if asana_id:
+            user.asana_id = asana_id
+            modified = True
+    if modified:
         db.session.add(user)
         db.session.commit()
     login_user(user, True)
     return redirect(url_for('index'))
 
 
-@app.route('/review')
-def review():
-    if not (current_user.is_authenticated and current_user.in_cgem):
-        return render_template("index.html")
-    return render_template("review.html", df=g.review.df, cols_show=g.review.cols_show)
-
-
-@app.route('/download/<file_id>')
-def download(file_id):
-    if not (current_user.is_authenticated and current_user.in_cgem):
-        return render_template("index.html")
-    from .drive import download_file
-
-    files = g.review.df
-    try:
-        file_info = files[files.id == file_id].iloc[0]
-    except IndexError:
-        flash('File not found', 'error')
-        return redirect(url_for('download'))
-    title = file_info.title
-    mime_orig = file_info.mimeType
-    fh, filename, mime_out = download_file(file_id, title=title,
-                                           mime_orig=mime_orig)
-    fh.seek(0)
-    return send_file(fh, mimetype=mime_out,
-                     as_attachment=True, attachment_filename=filename)
-
-
-@app.route('/build_zip')
-def get_folder_zip():
-    if not (current_user.is_authenticated and current_user.in_cgem):
-        return render_template("index.html")
-    from .drive import download_folder_zip
-
-    files = g.review.df
-    zipped_file = download_folder_zip(files)
-    time_str = datetime.utcnow().strftime('%Y-%m-%d_%H:%M:%SZ')
-    out_name = 'C-GEM_files_{}.zip'.format(time_str)
-    zipped_file.seek(0)
-    return send_file(zipped_file, mimetype='application/zip',
-                     as_attachment=True, attachment_filename=out_name)
-
-
 @app.route('/compounds',  methods=['GET'])
+@membership_required
 def show_compounds():
-    if not (current_user.is_authenticated and current_user.in_cgem):
-        return render_template("index.html")
     from .compounds import get_categ_tables, SUMMARY_COL_DICT
     show_cols = list()
     for col in SUMMARY_COL_DICT:
@@ -122,9 +127,8 @@ def show_compounds():
 
 
 @app.route('/compounds/<compound_safe>',  methods=['GET'])
+@membership_required
 def show_single_compound(compound_safe):
-    if not (current_user.is_authenticated and current_user.in_cgem):
-        return render_template("index.html")
     from .compounds import COMPOUNDS, SINGLE_COL_DICT
     col_dict = SINGLE_COL_DICT
     overview_cols = list()
@@ -148,9 +152,26 @@ def show_single_compound(compound_safe):
 
 
 @app.route('/reload-compounds',  methods=['GET'])
+@membership_required
 def reload_compounds():
     from .compounds import reload_listing, load_prebuilt_listing
     reload_listing()
     flash("Compound re-indexing in progress, and may take up to 20 seconds.",
           'message')
     return redirect(url_for('index'))
+
+
+@app.route('/asana',  methods=['GET'])
+@membership_required
+def asana_tasks():
+    """Show all unassigned and user-assigned tasks."""
+    color_dict = projects[['name', 'hex_color']]\
+        .set_index('name')['hex_color'].to_dict()
+    _logger.info("color_dict: %s", color_dict)
+    email = request.args.get('email', '')
+    user = find_user_by_email(email) if email else None
+    user = user if user else current_user
+    asana_id = get_asana_id_for_user(user)
+    show_dict = get_task_dict_for_user(asana_id)
+    return render_template("asana.html", show_dict=show_dict,
+                           color_dict=color_dict)

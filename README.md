@@ -76,7 +76,7 @@ COMPOUNDS_DIR_ID=yyyyyyyyyyy
 
 ### Running the app
 
-The Flask app can be served by running the `start_portal.sh` script. It uses 
+The app can be served by running the `start_portal.sh` script. It uses 
 the `flask` executable to serve the app on the port specified in your
 .env file (or port 5110 if not provided). If you use the default port, the app 
 will be accessible from your browser at `http://localhost:5110`.
