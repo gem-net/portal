@@ -32,7 +32,11 @@
     <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">  {# FIRST COLUMN #}
     <h1><i class="far fa-calendar-alt"></i>Upcoming events</h1>
     <p>Browse and create new events at <a href="https://calendar.google.com/calendar/r">Google Calendar</a>. Click a <i class="far fa-question-circle"></i> icon to view the event description.</p>
-    <p><strong>Next event {{ moment(cal.df.start.iloc[0]).fromNow() }}.</strong></p>
+        {% if cal.df | length %}
+            <p><strong>Next event {{ moment(cal.df.start.iloc[0]).fromNow() }}.</strong></p>
+        {% else %}
+            <p>No upcoming events.</p>
+        {% endif %}
     <div class="table-responsive">
         <table class="table table-condensed table-striped table-hover">
             <thead><tr>
