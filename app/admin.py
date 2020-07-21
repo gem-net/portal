@@ -2,6 +2,7 @@ import logging
 from collections import OrderedDict, namedtuple
 from datetime import date, datetime, timezone, timedelta
 
+import numpy as np
 import pandas as pd
 from flask import current_app
 from google.oauth2 import service_account
@@ -154,7 +155,7 @@ class StatusTable(ApiTable):
                                self.engine)
         statuses.status = statuses.status.apply(lambda v: status_dict[v])
         statuses = statuses.set_index('status').reindex(status_dict.values())
-        statuses = statuses['n_requests'].apply(lambda v: 0 if pd.np.isnan(v) else int(v)).reset_index()
+        statuses = statuses['n_requests'].apply(lambda v: 0 if np.isnan(v) else int(v)).reset_index()
         self._df = statuses
 
 
@@ -198,7 +199,7 @@ class Calendar(ApiTable):
     def parse_time(time):
         """Return naive datetime in UTC."""
         if pd.isnull(time):
-            return pd.np.nan
+            return np.nan
         stripped = time[:-3] + time[-2:]  # remove colon in UTC offset
         dt = datetime.strptime(stripped, '%Y-%m-%dT%H:%M:%S%z')
         return ApiTable._get_utc_naive(dt)

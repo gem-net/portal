@@ -4,6 +4,7 @@ import requests
 import datetime as dt
 from collections import OrderedDict, defaultdict
 
+import numpy as np
 import pandas as pd
 
 from . import app, db, MEMBERS_DICT, name_dict, DATA_DIR
@@ -34,7 +35,7 @@ projects = None
 tasks = None
 links = None
 
-nan = pd.np.nan
+nan = np.nan
 nat = pd._libs.tslibs.nattype.NaT
 
 
@@ -404,13 +405,11 @@ class Unused:
             vals = full_name.split(' ')
             return vals[0], vals[1]
         else:
-            return pd.np.nan, pd.np.nan
+            return np.nan, np.nan
 
     @staticmethod
     def get_asana_user_task_lists():
-        """Get dictionary of user_id: task_list_id for all users.
-
-        Currently a frozen version is loaded from maps.py."""
+        """Get dictionary of user_id: task_list_id for all users."""
         params = {
             'workspace': WORKSPACE_ID,
         }

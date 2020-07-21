@@ -3,6 +3,7 @@ from datetime import datetime
 from collections import OrderedDict
 import logging
 
+import numpy as np
 import pandas as pd
 from werkzeug.urls import url_quote_plus
 
@@ -35,28 +36,28 @@ SUMMARY_COL_DICT = OrderedDict([
 SINGLE_COL_DICT = OrderedDict([
     ('categ', ('Category', 'overview', 100)),
     ('cas', ('CAS', 'overview', 100)),
-    ('compound', ('compound', pd.np.nan, 100)),
+    ('compound', ('compound', np.nan, 100)),
     ('mass', ('Available', 'overview', 100)),
     ('title', ('Title', 'single', 100)),
     ('date', ('Modified', 'single', 100)),
-    ('is_top_dir', ('is_top_dir', pd.np.nan, 100)),
-    ('is_data', ('is_data', pd.np.nan, 100)),
-    ('is_doc', ('is_doc', pd.np.nan, 100)),
+    ('is_top_dir', ('is_top_dir', np.nan, 100)),
+    ('is_data', ('is_data', np.nan, 100)),
+    ('is_doc', ('is_doc', np.nan, 100)),
     ('ext', ('Extension', 'single', 100)),
-    ('path', ('path', pd.np.nan, 100)),
-    ('date_created', ('Created', pd.np.nan, 100)),
+    ('path', ('path', np.nan, 100)),
+    ('date_created', ('Created', np.nan, 100)),
     ('date_modified', ('Modified', 'single', 100)),
-    ('icon', ('icon', pd.np.nan, 100)),
-    ('id', ('id', pd.np.nan, 100)),
-    ('is_folder', ('is_folder', pd.np.nan, 100)),
-    ('kind', ('kind', pd.np.nan, 100)),
+    ('icon', ('icon', np.nan, 100)),
+    ('id', ('id', np.nan, 100)),
+    ('is_folder', ('is_folder', np.nan, 100)),
+    ('kind', ('kind', np.nan, 100)),
     ('last_user', ('Modified by', 'single', 100)),
-    ('mimeType', ('mimeType', pd.np.nan, 100)),
-    ('thumb', ('thumb', pd.np.nan, 100)),
-    ('trashed', ('trashed', pd.np.nan, 100)),
-    ('url_content', ('url_content', pd.np.nan, 100)),
-    ('url_view', ('url_view', pd.np.nan, 100)),
-    ('compound_safe', ('compound_safe', pd.np.nan, 100)),
+    ('mimeType', ('mimeType', np.nan, 100)),
+    ('thumb', ('thumb', np.nan, 100)),
+    ('trashed', ('trashed', np.nan, 100)),
+    ('url_content', ('url_content', np.nan, 100)),
+    ('url_view', ('url_view', np.nan, 100)),
+    ('compound_safe', ('compound_safe', np.nan, 100)),
 ])
 
 
@@ -81,7 +82,7 @@ def parse_path(path):
 
 
 def interpret_row(r):
-    ext, is_data, is_doc = pd.np.nan, False, False
+    ext, is_data, is_doc = np.nan, False, False
     is_folder = r.is_folder
     if not is_folder:
         try:
@@ -101,7 +102,7 @@ def get_last_user(d):
         doc_users = doc_users.sort_values('date_modified', ascending=False)
         last_user = doc_users['last_user'].iloc[0]
         return last_user
-    return pd.np.nan
+    return np.nan
 
 
 def load_prebuilt_listing():

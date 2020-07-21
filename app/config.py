@@ -1,6 +1,5 @@
 import os
 import logging
-from collections import defaultdict
 
 from dotenv import load_dotenv, find_dotenv
 
