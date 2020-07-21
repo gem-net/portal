@@ -32,7 +32,6 @@ class Config(object):
 
     SERVICE_ACCOUNT_FILE = os.environ.get('SERVICE_ACCOUNT_FILE')
     CREDENTIALS_AS_USER = os.environ.get('CREDENTIALS_AS_USER')
-    CREDS_JSON = os.environ.get('CREDS_JSON')
     GROUP_KEY = os.environ.get('GROUP_KEY')
     SCOPES = [
         'https://www.googleapis.com/auth/admin.directory.user.readonly',

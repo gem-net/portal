@@ -12,6 +12,6 @@ source ${APP_DIR}/.env
 
 export FLASK_ENV=${FLASK_ENV:-production}
 export FLASK_APP=${APP_DIR}/app.py
-PORT=${PORT:-5110}
+export FLASK_RUN_PORT=${FLASK_RUN_PORT:-5110}
 
-${PY_HOME}/bin/flask run --port ${PORT}
+${PY_HOME}/bin/flask run
